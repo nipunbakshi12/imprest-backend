@@ -1,7 +1,7 @@
 const express = require("express");
-const { getImprest, createImprest, getManagerData, postManagerDepartment, loginUser, getImprestBasedOnRole, createImprestBasedOnRoles } = require("../controllers/index.js");
+const { getImprest, createImprest, getManagerData, postManagerDepartment, loginUser, getImprestBasedOnRole, createImprestBasedOnRoles, getAllImprestForEmployees } = require("../controllers/index.js");
 const { login } = require("../controllers/auth.controller.js");
-const Imprest = require("../models/employee.Model.js");
+const Imprest = require("../models/imprest.Model.js");
 const authMiddleware = require("../middleware/auth.middleware.js");
 
 const router = express.Router();
@@ -10,7 +10,7 @@ const router = express.Router();
 router.post("/login", login);
 
 // employee data apis
-router.get("/getAllImprest", getImprest);
+router.get("/getAllImprestForEmployees",authMiddleware, getAllImprestForEmployees);
 router.post("/createImprest", authMiddleware, createImprestBasedOnRoles);
 router.get("/getManagerData", getManagerData);
 
