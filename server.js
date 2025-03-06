@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./src/config/db");
 const imprestRoutes = require("./src/routes/index.js");
+const userRoutes = require("./src/routes/user.routes.js");
 
 dotenv.config();
 connectDB()
@@ -19,6 +20,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 
 // Routes
+app.use("/api", userRoutes);
 app.use("/api/imprest", imprestRoutes);
 
 app.get('/', (req, res) =>
