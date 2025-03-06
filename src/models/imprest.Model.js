@@ -53,6 +53,11 @@ const imprestSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    paymentDetail: {
+      type: String,
+      required: false,
+      enum: ["Installments", "Full Advance", "Partial Payment", "Credit"],
+    },
   },
   {
     timestamps: true,

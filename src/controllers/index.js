@@ -1,8 +1,7 @@
 const Imprest = require("../models/imprest.Model.js");
 const User = require("../models/user.Model.js");
 
-
-// latest and correct api 
+// latest and correct api
 const getAllImprestForEmployees = async (req, res) => {
   try {
     const employeeDepartment = req.user.department;
@@ -28,6 +27,7 @@ const createImprestBasedOnRoles = async (req, res) => {
       refillAmount,
       vendorName,
       status,
+      paymentDetail,
     } = req.body;
 
     // Validate required fields
@@ -64,6 +64,7 @@ const createImprestBasedOnRoles = async (req, res) => {
       refillAmount,
       vendorName,
       status,
+      paymentDetail,
     });
 
     // Save to database
@@ -99,24 +100,17 @@ const createImprestBasedOnRoles = async (req, res) => {
   }
 };
 
-
-
 // old apis
-async function getManagerData(role, department) {
-  let query = { department };
+const getManagerData = async (req, res) => {
+  const employeeDepartment = req.user.department;
 
-  // Add role-based filtering
-  switch (role) {
-    case "Manager":
-      return await Imprest.find(query);
+  const response = await Imprest.find({ department: employeeDepartment });
 
-    case "Admin":
-      return await Imprest.find({});
-
-    default:
-      return [];
-  }
-}
+  res.json(200).message({
+    success: true,
+    data: response,
+  });
+};
 
 const getImprestBasedOnRole = async (req, res) => {
   try {

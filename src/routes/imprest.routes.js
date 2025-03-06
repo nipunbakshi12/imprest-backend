@@ -12,10 +12,10 @@ router.post("/login", login);
 // employee data apis
 router.get("/getAllImprestForEmployees",authMiddleware, getAllImprestForEmployees);
 router.post("/createImprest", authMiddleware, createImprestBasedOnRoles);
-router.get("/getManagerData", getManagerData);
+router.get("/getManagerData",authMiddleware, getManagerData);
 
 // Get imprest data based on role and department
-router.get('/get-imprest-based-on-role', authMiddleware, getImprestBasedOnRole);
+router.get('/get-imprest-based-on-role', getImprestBasedOnRole);
 
 
 module.exports = router;
