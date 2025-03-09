@@ -1,4 +1,5 @@
 const Imprest = require("../models/imprest.Model.js");
+const RefillAmount = require("../models/refillAmount.Model.js");
 const User = require("../models/user.Model.js");
 
 // latest and correct api
@@ -142,6 +143,56 @@ const getManagerData = async (req, res) => {
   }
 };
 
+const getAdminData = async (req, res) => {
+  const data = await Imprest.find();
+
+  res.status(200).json({
+    success: true,
+    data,
+  });
+};
+
+const refillAmount = async (req, res) => {
+  try {
+    const { refillAmount, department } = req.body;
+
+    // Validate inputs
+    if (!refillAmount || refillAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid refill amount",
+      });
+    }
+
+    if (!department) {
+      res.status(400).json({
+        success: false,
+        message: "Please Select the department !",
+      });
+    }
+
+    const savedImprest = new RefillAmount({
+      refillAmount: refillAmount,
+      department: department,
+    });
+
+    await savedImprest.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Amount refilled successfully",
+      data: savedImprest,
+    });
+  } catch (error) {
+    console.error("Error in refillAmount:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
 const updateRequestStatus = async (req, res) => {
   try {
     // const { requestId } = req.params;
@@ -253,4 +304,6 @@ module.exports = {
   getManagerData,
   getImprestBasedOnRole,
   updateRequestStatus,
+  getAdminData,
+  refillAmount,
 };

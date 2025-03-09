@@ -23,7 +23,7 @@ const login = async (req, res) => {
         role,
         department: role === "Manager" ? department : null,
       },
-      "your_jwt_secret",
+      process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
