@@ -1,6 +1,20 @@
 const Imprest = require("../models/imprest.Model.js");
 const RefillAmount = require("../models/refillAmount.Model.js");
 const User = require("../models/user.Model.js");
+const Notification = require("../models/notification.Model.js");
+
+
+function extractNameFromEmail(email) {
+  try {
+    const namePart = email.split('@')[0]; // Split at "@" and take the first part
+    // Additional cleaning/formatting if needed (e.g., remove numbers, underscores)
+    const cleanedName = namePart.replace(/[^a-zA-Z\s]/g, ''); // Remove non-alphanumeric characters
+    return cleanedName.trim(); // Remove leading/trailing whitespace
+  } catch (error) {
+    console.error("Error extracting name from email:", error);
+    return null; // Or return a default value like "Unknown"
+  }
+}
 
 // latest and correct api
 const getAllImprestForEmployees = async (req, res) => {
@@ -76,6 +90,19 @@ const createImprestBasedOnRoles = async (req, res) => {
 
     // Save to database
     await newImprest.save();
+
+    // create notification
+    const empName = extractNameFromEmail(req.user.email)
+    const adminUsers = await User.find({ role: "Admin" }); // Get all admin users
+    await Promise.all(
+      adminUsers.map(async (admin) => {
+        await createNotification(
+          admin._id,
+          `New imprest request raised by ${empName}  `,
+          newImprest._id
+        );
+      })
+    );
 
     res.status(201).json({
       success: true,
@@ -193,6 +220,35 @@ const refillAmount = async (req, res) => {
   }
 };
 
+// helper function to create notification
+const createNotification = async (userId, message, imprestId = null) => {
+  try {
+    await Notification.create({ user: userId, message, imprest: imprestId });
+  } catch (error) {
+    console.error("Error creating notification:", error);
+  }
+};
+
+const getNotification = async (req, res) => {
+  console.log("request", req.user);
+
+  if (req.user.role !== "Admin") {
+    return res
+      .status(403)
+      .json({ message: "Only Admin can get the notifications" });
+  }
+
+  const notifications = await Notification.find({ user: req.user._id })
+    .populate("imprest", "description amount") // Optionally populate imprest details
+    .sort({ createdAt: -1 }); // Sort by creation time (newest first)
+
+  res.status(200).json({
+    success: true,
+    message: `Notifications fetched successfully`,
+    data: notifications,
+  });
+};
+
 const updateRequestStatus = async (req, res) => {
   try {
     // const { requestId } = req.params;
@@ -251,6 +307,23 @@ const updateRequestStatus = async (req, res) => {
       .populate("employeeId", "email")
       .populate("managerId", "email");
 
+    // notification
+
+    const adminUsers = await User.find({ role: "Admin" }); // Get all admin users
+
+    const managerName = extractNameFromEmail(req.user.email)
+
+    const action = req.body.status === "Approv" ? "approved" : "rejected";
+    await Promise.all(
+      adminUsers.map(async (admin) => {
+        await createNotification(
+          admin._id,
+          `Imprest request ${action} by ${managerName} manager`,
+          req.params.id
+        );
+      })
+    );
+
     // Send response
     res.status(200).json({
       success: true,
@@ -306,4 +379,6 @@ module.exports = {
   updateRequestStatus,
   getAdminData,
   refillAmount,
+  getNotification,
+  createNotification,
 };
