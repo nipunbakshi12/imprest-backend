@@ -3,12 +3,11 @@ const RefillAmount = require("../models/refillAmount.Model.js");
 const User = require("../models/user.Model.js");
 const Notification = require("../models/notification.Model.js");
 
-
 function extractNameFromEmail(email) {
   try {
-    const namePart = email.split('@')[0]; // Split at "@" and take the first part
+    const namePart = email.split("@")[0]; // Split at "@" and take the first part
     // Additional cleaning/formatting if needed (e.g., remove numbers, underscores)
-    const cleanedName = namePart.replace(/[^a-zA-Z\s]/g, ''); // Remove non-alphanumeric characters
+    const cleanedName = namePart.replace(/[^a-zA-Z\s]/g, ""); // Remove non-alphanumeric characters
     return cleanedName.trim(); // Remove leading/trailing whitespace
   } catch (error) {
     console.error("Error extracting name from email:", error);
@@ -92,7 +91,7 @@ const createImprestBasedOnRoles = async (req, res) => {
     await newImprest.save();
 
     // create notification
-    const empName = extractNameFromEmail(req.user.email)
+    const empName = extractNameFromEmail(req.user.email);
     const adminUsers = await User.find({ role: "Admin" }); // Get all admin users
     await Promise.all(
       adminUsers.map(async (admin) => {
@@ -182,6 +181,7 @@ const getAdminData = async (req, res) => {
 const refillAmount = async (req, res) => {
   try {
     const { refillAmount, department } = req.body;
+    const userId = req.user.id;
 
     // Validate inputs
     if (!refillAmount || refillAmount <= 0) {
@@ -205,6 +205,11 @@ const refillAmount = async (req, res) => {
 
     await savedImprest.save();
 
+    await createNotification({
+      userId,
+      message: `New refill amount added: ${refillAmount} for department: ${department}`,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Amount refilled successfully",
@@ -220,6 +225,33 @@ const refillAmount = async (req, res) => {
   }
 };
 
+const getRefillAmount = async (req, res) => {
+  try {
+    const department = req.user.department;
+    const userId = req.user.id;
+    console.log("department: " + department);
+
+    const refillAmounts = await RefillAmount.find({ department })
+      .sort({
+        createdAt: -1,
+      })
+      .limit(1);
+
+    if (!refillAmounts.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No refill amounts found" });
+    }
+
+    return res.status(200).json({ success: true, data: refillAmounts });
+  } catch (error) {
+    console.error("Error fetching refill amounts:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
 // helper function to create notification
 const createNotification = async (userId, message, imprestId = null) => {
   try {
@@ -230,7 +262,6 @@ const createNotification = async (userId, message, imprestId = null) => {
 };
 
 const getNotification = async (req, res) => {
-  console.log("request", req.user);
 
   if (req.user.role !== "Admin") {
     return res
@@ -239,8 +270,8 @@ const getNotification = async (req, res) => {
   }
 
   const notifications = await Notification.find({ user: req.user._id })
-    .populate("imprest", "description amount") // Optionally populate imprest details
-    .sort({ createdAt: -1 }); // Sort by creation time (newest first)
+    .populate("imprest", "description amount") 
+    .sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,
@@ -311,7 +342,7 @@ const updateRequestStatus = async (req, res) => {
 
     const adminUsers = await User.find({ role: "Admin" }); // Get all admin users
 
-    const managerName = extractNameFromEmail(req.user.email)
+    const managerName = extractNameFromEmail(req.user.email);
 
     const action = req.body.status === "Approv" ? "approved" : "rejected";
     await Promise.all(
@@ -336,6 +367,35 @@ const updateRequestStatus = async (req, res) => {
       message: "Error updating request status",
       error: error.message,
     });
+  }
+};
+
+const requestUrgentFundsFromAdmin = async (req, res) => {
+  try {
+    const { funds_required } = req.body;
+    const department = req.user.department;
+
+    console.log("funds_required", funds_required);
+
+    if ((funds_required == 1)) {
+      const adminUsers = await User.find({ role: "Admin" });
+
+      await Promise.all(
+        adminUsers.map(async (admin) => {
+          await createNotification(
+            admin._id,
+            `${department} department needs urgent funds!`
+          );
+        })
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Funds requested Successfully!",
+    });
+  } catch (error) {
+    console.log("Error in asking funds : ", error);
   }
 };
 
@@ -381,4 +441,6 @@ module.exports = {
   refillAmount,
   getNotification,
   createNotification,
+  getRefillAmount,
+  requestUrgentFundsFromAdmin,
 };
