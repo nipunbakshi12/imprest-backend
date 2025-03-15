@@ -225,8 +225,9 @@ const refillAmount = async (req, res) => {
 };
 const disbursedFunds = async (req, res) => {
   try {
-
-    const data =await RefillAmount.find()
+    const data = await RefillAmount.find().sort({
+      createdAt: -1,
+    });
 
     return res.status(200).json({
       success: true,
@@ -235,11 +236,6 @@ const disbursedFunds = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in refillAmount:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    });
   }
 };
 
@@ -527,5 +523,5 @@ module.exports = {
   requestUrgentFundsFromAdmin,
   updateRefillAmount,
   updateNotificationStatus,
-  disbursedFunds
+  disbursedFunds,
 };
