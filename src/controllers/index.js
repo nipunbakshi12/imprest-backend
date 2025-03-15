@@ -402,13 +402,13 @@ const updateNotificationStatus = async (req, res) => {
     });
 
     data.read = read;
+    await data.save();
 
     res.status(200).json({
       suucess: true,
       message: "Marked As Read",
       data,
     });
-    
   } catch (error) {
     console.log("Error in updating notifiaction status", error);
   }
