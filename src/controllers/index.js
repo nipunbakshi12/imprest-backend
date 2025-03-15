@@ -397,20 +397,39 @@ const updateNotificationStatus = async (req, res) => {
     const { id } = req.params;
     const { read } = req.body;
 
-    const data = await Notification.findOne({
-      id: id,
-    });
+    const notification = await Notification.findOne({ _id: id });
 
-    data.read = read;
-    await data.save();
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      });
+    }
 
-    res.status(200).json({
-      suucess: true,
-      message: "Marked As Read",
-      data,
-    });
+    if (read) {
+      // If read is true, delete the notification
+      await Notification.deleteOne({ _id: id });
+      return res.status(200).json({
+        success: true,
+        message: "Notification deleted after being read",
+        data: null
+      });
+    } else {
+      // If read is false, update the notification
+      notification.read = read;
+      await notification.save();
+      return res.status(200).json({
+        success: true,
+        message: "Notification marked as unread",
+        data: notification
+      });
+    }
   } catch (error) {
-    console.log("Error in updating notifiaction status", error);
+    console.error("Error in updating notification status", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
 
