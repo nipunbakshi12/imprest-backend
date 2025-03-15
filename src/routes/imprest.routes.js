@@ -14,6 +14,7 @@ const {
   getNotification,
   getRefillAmount,
   requestUrgentFundsFromAdmin,
+  updateRefillAmount,
 } = require("../controllers/index.js");
 const { login } = require("../controllers/auth.controller.js");
 const Imprest = require("../models/imprest.Model.js");
@@ -35,6 +36,7 @@ router.get("/getManagerData", authMiddleware, getManagerData);
 router.get("/getAdminData", getAdminData);
 router.post("/refillAmount",authMiddleware, refillAmount);
 router.get("/getRefillAmount", authMiddleware, getRefillAmount);
+router.post("/updateRefillAmount", authMiddleware, updateRefillAmount);
 router.post("/requestUrgentFundsFromAdmin", authMiddleware, requestUrgentFundsFromAdmin);
 router.get("/notification", authMiddleware, getNotification);
 router.put("/updateRequestStatus/:id", authMiddleware, updateRequestStatus);

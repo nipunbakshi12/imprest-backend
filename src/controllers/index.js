@@ -224,12 +224,35 @@ const refillAmount = async (req, res) => {
   }
 };
 
+const updateRefillAmount = async (req, res) => {
+  try {
+    const { newAmount } = req.body;
+    const department = req.user.department;
+
+    const data = await RefillAmount.findOne({
+      department: department,
+    }).sort({ createdAt: -1 });
+
+    data.refillAmount = newAmount;
+    data.managerId = req.user.id;
+
+    // Save the updated document
+    await data.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Updated the refill amount",
+      data,
+    });
+  } catch (error) {
+    console.log("errorrrrr in update", error);
+  }
+};
 
 const getRefillAmount = async (req, res) => {
   try {
     const department = req.user.department;
     const userId = req.user.id;
-    console.log("department: " + department);
 
     const refillAmounts = await RefillAmount.find({ department })
       .sort({
@@ -442,4 +465,5 @@ module.exports = {
   createNotification,
   getRefillAmount,
   requestUrgentFundsFromAdmin,
+  updateRefillAmount,
 };

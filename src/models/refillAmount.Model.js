@@ -12,7 +12,7 @@ const refillAmountSchema = new mongoose.Schema(
       ref: "User",
     },
     refillAmount: {
-      type: String,
+      type: Number,
       required: true,
     },
   },
