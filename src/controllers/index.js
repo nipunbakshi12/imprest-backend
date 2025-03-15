@@ -38,7 +38,6 @@ const getAllImprestForEmployees = async (req, res) => {
 const createImprestBasedOnRoles = async (req, res) => {
   try {
     const { role } = req.user;
-    console.log("user", req.user);
 
     const {
       description,
@@ -225,6 +224,7 @@ const refillAmount = async (req, res) => {
   }
 };
 
+
 const getRefillAmount = async (req, res) => {
   try {
     const department = req.user.department;
@@ -262,7 +262,6 @@ const createNotification = async (userId, message, imprestId = null) => {
 };
 
 const getNotification = async (req, res) => {
-
   if (req.user.role !== "Admin") {
     return res
       .status(403)
@@ -270,7 +269,7 @@ const getNotification = async (req, res) => {
   }
 
   const notifications = await Notification.find({ user: req.user._id })
-    .populate("imprest", "description amount") 
+    .populate("imprest", "description amount")
     .sort({ createdAt: -1 });
 
   res.status(200).json({
@@ -377,7 +376,7 @@ const requestUrgentFundsFromAdmin = async (req, res) => {
 
     console.log("funds_required", funds_required);
 
-    if ((funds_required == 1)) {
+    if (funds_required == 1) {
       const adminUsers = await User.find({ role: "Admin" });
 
       await Promise.all(
