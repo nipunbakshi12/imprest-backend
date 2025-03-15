@@ -169,7 +169,7 @@ const getManagerData = async (req, res) => {
 };
 
 const getAdminData = async (req, res) => {
-  const data = await Imprest.find();
+  const data = await Imprest.find().sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,
@@ -402,7 +402,7 @@ const updateNotificationStatus = async (req, res) => {
     if (!notification) {
       return res.status(404).json({
         success: false,
-        message: "Notification not found"
+        message: "Notification not found",
       });
     }
 
@@ -412,7 +412,7 @@ const updateNotificationStatus = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Notification deleted after being read",
-        data: null
+        data: null,
       });
     } else {
       // If read is false, update the notification
@@ -421,14 +421,14 @@ const updateNotificationStatus = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Notification marked as unread",
-        data: notification
+        data: notification,
       });
     }
   } catch (error) {
     console.error("Error in updating notification status", error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };
