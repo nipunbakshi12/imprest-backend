@@ -392,6 +392,28 @@ const updateRequestStatus = async (req, res) => {
   }
 };
 
+const updateNotificationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { read } = req.body;
+
+    const data = await Notification.findOne({
+      id: id,
+    });
+
+    data.read = read;
+
+    res.status(200).json({
+      suucess: true,
+      message: "Marked As Read",
+      data,
+    });
+    
+  } catch (error) {
+    console.log("Error in updating notifiaction status", error);
+  }
+};
+
 const requestUrgentFundsFromAdmin = async (req, res) => {
   try {
     const { funds_required } = req.body;
@@ -466,4 +488,5 @@ module.exports = {
   getRefillAmount,
   requestUrgentFundsFromAdmin,
   updateRefillAmount,
+  updateNotificationStatus,
 };
