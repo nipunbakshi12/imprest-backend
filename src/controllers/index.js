@@ -528,15 +528,14 @@ const getImprestBasedOnRole = async (req, res) => {
   }
 };
 
-const getAllNotification = async (req,res)=>{
-  const noti = await Notification.find()
+const getAllNotification = async (req, res) => {
+  const noti = await Notification.find().sort({ createdAt: -1 });
 
   res.json({
     success: true,
     data: noti,
   });
-
-}
+};
 
 module.exports = {
   getAllImprestForEmployees,
