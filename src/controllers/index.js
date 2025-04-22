@@ -440,24 +440,14 @@ const updateNotificationStatus = async (req, res) => {
       });
     }
 
-    if (read) {
-      // If read is true, delete the notification
-      await Notification.deleteOne({ _id: id });
-      return res.status(200).json({
-        success: true,
-        message: "Notification deleted after being read",
-        data: null,
-      });
-    } else {
-      // If read is false, update the notification
-      notification.read = read;
-      await notification.save();
-      return res.status(200).json({
-        success: true,
-        message: "Notification marked as unread",
-        data: notification,
-      });
-    }
+    notification.read = true;
+    await notification.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Notification marked as read",
+      data: null,
+    });
   } catch (error) {
     console.error("Error in updating notification status", error);
     return res.status(500).json({
