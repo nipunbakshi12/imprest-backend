@@ -17,6 +17,8 @@ const {
   updateRefillAmount,
   updateNotificationStatus,
   disbursedFunds,
+  getLedgerForAdmin,
+  getAllNotification,
 } = require("../controllers/index.js");
 const { login } = require("../controllers/auth.controller.js");
 const Imprest = require("../models/imprest.Model.js");
@@ -44,6 +46,8 @@ router.post("/requestUrgentFundsFromAdmin", authMiddleware, requestUrgentFundsFr
 router.get("/notification", authMiddleware, getNotification);
 router.put("/notification/:id", authMiddleware, updateNotificationStatus);
 router.put("/updateRequestStatus/:id", authMiddleware, updateRequestStatus);
+router.get("/getLedgerForAdmin", authMiddleware,getLedgerForAdmin);
+router.get("/getAllNotification",getAllNotification);
 
 // Get imprest data based on role and department
 router.get("/get-imprest-based-on-role", getImprestBasedOnRole);

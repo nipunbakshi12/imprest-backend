@@ -11,6 +11,7 @@ const refillAmountSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    imprest: { type: mongoose.Schema.Types.ObjectId, ref: "imprest" },
     refillAmount: {
       type: Number,
       required: true,

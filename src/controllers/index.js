@@ -290,6 +290,25 @@ const getRefillAmount = async (req, res) => {
   }
 };
 
+const getLedgerForAdmin = async (req, res) => {
+  try {
+    const approvedRecords = await Imprest.find({ status: "APPROVED" });
+
+    return res.status(200).json({
+      success: true,
+      message: "Ledger Fetched Successfully",
+      data: approvedRecords,
+    });
+  } catch (error) {
+    console.log("error in ledger", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching ledger",
+      error: error.message,
+    });
+  }
+};
+
 // helper function to create notification
 const createNotification = async (userId, message, imprestId = null) => {
   try {
@@ -509,6 +528,16 @@ const getImprestBasedOnRole = async (req, res) => {
   }
 };
 
+const getAllNotification = async (req,res)=>{
+  const noti = await Notification.find()
+
+  res.json({
+    success: true,
+    data: noti,
+  });
+
+}
+
 module.exports = {
   getAllImprestForEmployees,
   createImprestBasedOnRoles,
@@ -524,4 +553,6 @@ module.exports = {
   updateRefillAmount,
   updateNotificationStatus,
   disbursedFunds,
+  getLedgerForAdmin,
+  getAllNotification,
 };
