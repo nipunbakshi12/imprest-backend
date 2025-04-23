@@ -304,12 +304,17 @@ const getRefillAmount = async (req, res) => {
 
 const getLedgerForAdmin = async (req, res) => {
   try {
-    const approvedRecords = await Imprest.find({ status: "APPROVED" });
+    const approvedRecords = await Imprest.find({ status: "Approv" });
+    console.log("approvedRecords", approvedRecords);
+
+    const fundsDisbursed = await RefillAmount.find().sort({
+      createdAt: -1,
+    });
 
     return res.status(200).json({
       success: true,
       message: "Ledger Fetched Successfully",
-      data: approvedRecords,
+      data: { approvedRecords, fundsDisbursed },
     });
   } catch (error) {
     console.log("error in ledger", error);
