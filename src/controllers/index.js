@@ -198,7 +198,9 @@ const refillAmount = async (req, res) => {
     }
 
     // Find existing record for the department
-    let existingImprest = await RefillAmount.findOne({ department });
+    let existingImprest = await RefillAmount.findOne({
+      department: department,
+    }).sort({ createdAt: -1 });
 
     if (existingImprest) {
       // If record exists, update the amount
