@@ -191,18 +191,27 @@ const refillAmount = async (req, res) => {
     }
 
     if (!department) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: "Please Select the department !",
       });
     }
 
-    const savedImprest = new RefillAmount({
-      refillAmount: refillAmount,
-      department: department,
-    });
+    // Find existing record for the department
+    let existingImprest = await RefillAmount.findOne({ department });
 
-    await savedImprest.save();
+    if (existingImprest) {
+      // If record exists, update the amount
+      existingImprest.refillAmount += refillAmount;
+      await existingImprest.save();
+    } else {
+      // If no record exists, create a new one
+      existingImprest = new RefillAmount({
+        refillAmount: refillAmount,
+        department: department,
+      });
+      await existingImprest.save();
+    }
 
     await createNotification({
       userId,
@@ -212,7 +221,7 @@ const refillAmount = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Amount refilled successfully",
-      data: savedImprest,
+      data: existingImprest,
     });
   } catch (error) {
     console.error("Error in refillAmount:", error);
@@ -223,6 +232,7 @@ const refillAmount = async (req, res) => {
     });
   }
 };
+
 const disbursedFunds = async (req, res) => {
   try {
     const data = await RefillAmount.find().sort({
