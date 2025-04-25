@@ -16,10 +16,18 @@ const refillAmountSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    refillAmountHistory: {
-      type: [Number],
-      required: true,
-    },
+    refillAmountHistory: [
+      {
+        amount: {
+          type: Number,
+          required: false,
+        },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

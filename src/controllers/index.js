@@ -203,16 +203,28 @@ const refillAmount = async (req, res) => {
     }).sort({ createdAt: -1 });
 
     const refillAmt = Number(refillAmount); // Ensures numeric addition
+    console.log("refill amt", refillAmt);
+
+    console.log("amount", existingImprest.refillAmountHistory);
 
     if (existingImprest) {
       existingImprest.refillAmount += refillAmt;
-      existingImprest.refillAmountHistory.push(refillAmt);
+      // Add the new refill to history
+      existingImprest.refillAmountHistory.push({
+        amount: refillAmt,
+        date: new Date(),
+      });
       await existingImprest.save();
     } else {
       existingImprest = new RefillAmount({
         refillAmount: refillAmt,
         department: department,
-        refillAmountHistory: [refillAmt],
+        refillAmountHistory: [
+          {
+            amount: refillAmt, // This must be present and a valid number
+            date: new Date(),
+          },
+        ],
       });
       await existingImprest.save();
     }
@@ -593,6 +605,41 @@ const getAllNotification = async (req, res) => {
   });
 };
 
+const migrateRefillHistory = async (req,res) => {
+  try {
+    const allRefillRecords = await RefillAmount.find();
+    console.log("all refill rec",allRefillRecords)
+
+    for (const record of allRefillRecords) {
+      // Check if refillAmountHistory is a   number
+      if (typeof record.refillAmountHistory === "number") {
+        // Convert it to the new format (array)
+        const historyValue = record.refillAmountHistory;
+        record.refillAmountHistory = [
+          {
+            amount: historyValue,
+            date: record.updatedAt,
+          },
+        ];
+        await record.save();
+        return historyValue
+      }
+    }
+
+    res.json({
+      success: true,
+      // data: historyValue,
+    });
+
+    console.log("Migration completed successfully");
+  } catch (error) {
+    console.error("Migration failed:", error);
+  }
+};
+
+// Run this function to migrate your data
+// migrateRefillHistory();
+
 module.exports = {
   getAllImprestForEmployees,
   createImprestBasedOnRoles,
@@ -610,4 +657,5 @@ module.exports = {
   disbursedFunds,
   getLedgerForAdmin,
   getAllNotification,
+  migrateRefillHistory,
 };
