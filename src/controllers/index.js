@@ -315,20 +315,19 @@ const getRefillAmount = async (req, res) => {
 
 const getLedgerForAdmin = async (req, res) => {
   try {
+    // First, get all transactions (both refills and approvals) so we can process them chronologically
     const fundsDisbursed = await RefillAmount.find().sort({ createdAt: 1 });
     const approvedRecords = await Imprest.find({ status: "Approv" })
       .populate("employeeId", "email")
       .populate("managerId", "name")
-      .sort({
-        createdAt: 1,
-      });
+      .sort({ createdAt: 1 });
 
+    // Initialize departments object
     const departments = {};
 
-    // Process disbursed funds
+    // Initialize departments structure
     for (const fund of fundsDisbursed) {
       const dept = fund.department;
-      console.log("dept", fund);
       if (!departments[dept]) {
         departments[dept] = {
           department: dept,
@@ -336,108 +335,147 @@ const getLedgerForAdmin = async (req, res) => {
           approvedRequests: [],
           fundsDisbursed: [],
           currentBalance: 0,
-          balanceHistory: [], // Initialize balance history array
+          balanceHistory: [],
+          allTransactions: [], // We'll use this to sort transactions chronologically
         };
       }
-      departments[dept].totalRefill += Number(fund.refillAmount);
-      departments[dept].currentBalance += Number(fund.refillAmount);
-      departments[dept].fundsDisbursed.push(fund);
+    }
 
-      // Add refill history entries
+    for (const record of approvedRecords) {
+      const dept = record.department;
+      if (!departments[dept]) {
+        departments[dept] = {
+          department: dept,
+          totalRefill: 0,
+          approvedRequests: [],
+          fundsDisbursed: [],
+          currentBalance: 0,
+          balanceHistory: [],
+          allTransactions: [],
+        };
+      }
+    }
+
+    // Process refill records to add to transactions list
+    for (const fund of fundsDisbursed) {
+      const dept = fund.department;
+      departments[dept].fundsDisbursed.push(fund);
+      departments[dept].totalRefill += Number(fund.refillAmount);
+
+      // Add refill history entries to allTransactions
       if (fund.refillAmountHistory && fund.refillAmountHistory.length > 0) {
         for (const refill of fund.refillAmountHistory) {
           if (refill.amount) {
-            departments[dept].balanceHistory.push({
+            departments[dept].allTransactions.push({
               date: refill.date,
               type: "refill",
-              amount: refill.amount,
-              balance: departments[dept].currentBalance, // Current balance after this refill
+              amount: Number(refill.amount),
               description: `Refill amount added to ${dept} department`,
               refillId: fund._id,
+              managerId: fund.managerId || null,
+              originalRecord: fund,
             });
           }
         }
       } else {
         // Handle legacy records without refill history
-        departments[dept].balanceHistory.push({
+        departments[dept].allTransactions.push({
           date: fund.createdAt,
           type: "refill",
-          amount: fund.refillAmount,
-          balance: departments[dept].currentBalance,
+          amount: Number(fund.refillAmount),
           description: `Refill amount added to ${dept} department`,
           refillId: fund._id,
           managerId: fund.managerId || null,
+          originalRecord: fund,
         });
       }
     }
 
-    // Process approved requests
+    // Process approved requests to add to transactions list
     for (const record of approvedRecords) {
-      console.log("record----------------", record);
-      console.log("approval records-----------------", approvedRecords);
       const dept = record.department;
       const amount = Number(record.amount);
 
-      if (!departments[dept]) {
-        departments[dept] = {
-          department: dept,
-          totalRefill: 0,
-          approvedRequests: [],
-          fundsDisbursed: [],
-          currentBalance: 0,
-          balanceHistory: [], // Initialize balance history array
-        };
-      }
+      departments[dept].approvedRequests.push({
+        ...record.toObject(),
+      });
 
-      const fundsBeforeApproval = departments[dept].currentBalance;
-
-      // Add to history before deducting from balance
-      departments[dept].balanceHistory.push({
+      departments[dept].allTransactions.push({
         date: record.updatedAt || record.createdAt,
         type: "expense",
         amount: amount,
-        balance: fundsBeforeApproval, // Balance before this expense
-        balanceAfter: fundsBeforeApproval - amount, // Balance after this expense
         description: `Approved imprest for ${
           extractNameFromEmail(record.employeeId?.email) || "N/A"
-        } - ${record?.description || "No purpose specified"}`,
+        } - For Imprest ${record?.description || "No purpose specified"}`,
         imprestId: record._id,
         approvedBy: record?.managerId || null,
+        originalRecord: record,
       });
-
-      departments[dept].approvedRequests.push({
-        ...record.toObject(),
-        fundsBeforeApproval,
-      });
-
-      departments[dept].currentBalance -= amount;
     }
 
-    // Sort balance history for each department by date (newest first)
+    // For each department, sort all transactions chronologically and calculate running balances
     for (const dept in departments) {
-      if (
-        departments[dept].balanceHistory &&
-        departments[dept].balanceHistory.length > 0
-      ) {
-        departments[dept].balanceHistory.sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
+      // Sort transactions by date (oldest first for proper balance calculation)
+      departments[dept].allTransactions.sort(
+        (a, b) => new Date(a.date) - new Date(b.date)
+      );
 
-        // Add current balance as most recent entry
-        departments[dept].balanceHistory.unshift({
-          date: new Date(),
-          type: "current",
-          balance: departments[dept].currentBalance,
-          description: "Current balance",
+      // Calculate running balances
+      let runningBalance = 0;
+
+      for (const transaction of departments[dept].allTransactions) {
+        const balanceBefore = runningBalance;
+
+        if (transaction.type === "refill") {
+          runningBalance += transaction.amount;
+        } else if (transaction.type === "expense") {
+          runningBalance -= transaction.amount;
+        }
+
+        // Add to history with correct balances
+        departments[dept].balanceHistory.push({
+          ...transaction,
+          balanceBefore: Number(balanceBefore.toFixed(2)),
+          balanceAfter: Number(runningBalance.toFixed(2)),
         });
+
+        // If this is an expense, also add fundsBeforeApproval to the original request
+        if (transaction.type === "expense" && transaction.originalRecord) {
+          const index = departments[dept].approvedRequests.findIndex(
+            (req) =>
+              req._id.toString() === transaction.originalRecord._id.toString()
+          );
+
+          if (index !== -1) {
+            departments[dept].approvedRequests[index].fundsBeforeApproval =
+              balanceBefore;
+          }
+        }
       }
+
+      // Set the department's current balance
+      departments[dept].currentBalance = Number(runningBalance.toFixed(2));
+
+      // Sort balance history for display (newest first)
+      departments[dept].balanceHistory.sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
+
+      // Add current balance as most recent entry
+      departments[dept].balanceHistory.unshift({
+        date: new Date(),
+        type: "current",
+        balance: departments[dept].currentBalance,
+        balanceBefore: departments[dept].currentBalance,
+        balanceAfter: departments[dept].currentBalance,
+        description: "Current balance",
+      });
+
+      // Remove temporary allTransactions array
+      delete departments[dept].allTransactions;
     }
 
-    console.log("departmentssss", departments);
-    const result = Object.values(departments).map((dept) => ({
-      ...dept,
-      currentBalance: Number(dept.currentBalance.toFixed(2)), // rounded for UI neatness
-    }));
+    const result = Object.values(departments);
 
     return res.status(200).json({
       success: true,
