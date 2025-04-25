@@ -17,7 +17,7 @@ const refillAmountSchema = new mongoose.Schema(
       required: true,
     },
     refillAmountHistory: {
-      type: Number,
+      type: [Number],
       required: true,
     },
   },

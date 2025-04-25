@@ -206,29 +206,16 @@ const refillAmount = async (req, res) => {
 
     if (existingImprest) {
       existingImprest.refillAmount += refillAmt;
-      existingImprest.refillAmountHistory = refillAmount;
+      existingImprest.refillAmountHistory.push(refillAmt);
       await existingImprest.save();
     } else {
       existingImprest = new RefillAmount({
         refillAmount: refillAmt,
         department: department,
-        // refillAmountHistory: refillAmount,
+        refillAmountHistory: [refillAmt],
       });
       await existingImprest.save();
     }
-
-    // if (existingImprest) {
-    //   // If record exists, update the amount
-    //   existingImprest.refillAmount += refillAmount;
-    //   await existingImprest.save();
-    // } else {
-    //   // If no record exists, create a new one
-    //   existingImprest = new RefillAmount({
-    //     refillAmount: refillAmount,
-    //     department: department,
-    //   });
-    //   await existingImprest.save();
-    // }
 
     await createNotification({
       userId,
