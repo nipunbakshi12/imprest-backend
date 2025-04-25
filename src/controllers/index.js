@@ -202,18 +202,33 @@ const refillAmount = async (req, res) => {
       department: department,
     }).sort({ createdAt: -1 });
 
+    const refillAmt = Number(refillAmount); // Ensures numeric addition
+
     if (existingImprest) {
-      // If record exists, update the amount
-      existingImprest.refillAmount += refillAmount;
+      existingImprest.refillAmount += refillAmt;
       await existingImprest.save();
     } else {
-      // If no record exists, create a new one
       existingImprest = new RefillAmount({
-        refillAmount: refillAmount,
+        refillAmount: refillAmt,
         department: department,
       });
       await existingImprest.save();
     }
+
+
+
+    // if (existingImprest) {
+    //   // If record exists, update the amount
+    //   existingImprest.refillAmount += refillAmount;
+    //   await existingImprest.save();
+    // } else {
+    //   // If no record exists, create a new one
+    //   existingImprest = new RefillAmount({
+    //     refillAmount: refillAmount,
+    //     department: department,
+    //   });
+    //   await existingImprest.save();
+    // }
 
     await createNotification({
       userId,
@@ -304,20 +319,66 @@ const getRefillAmount = async (req, res) => {
 
 const getLedgerForAdmin = async (req, res) => {
   try {
-    const approvedRecords = await Imprest.find({ status: "Approv" });
-    console.log("approvedRecords", approvedRecords);
+    const fundsDisbursed = await RefillAmount.find().sort({ createdAt: 1 });
+    const approvedRecords = await Imprest.find({ status: "Approv" }).sort({ createdAt: 1 });
 
-    const fundsDisbursed = await RefillAmount.find().sort({
-      createdAt: -1,
-    });
+    const departments = {};
+
+    // Process disbursed funds
+    for (const fund of fundsDisbursed) {
+      const dept = fund.department;
+      if (!departments[dept]) {
+        departments[dept] = {
+          department: dept,
+          totalRefill: 0,
+          approvedRequests: [],
+          fundsDisbursed: [],
+          currentBalance: 0,
+        };
+      }
+      departments[dept].totalRefill += Number(fund.refillAmount);
+      departments[dept].currentBalance += Number(fund.refillAmount);
+      departments[dept].fundsDisbursed.push(fund);
+    }
+
+    // Process approved requests
+    for (const record of approvedRecords) {
+      const dept = record.department;
+      const amount = Number(record.amount);
+
+      if (!departments[dept]) {
+        departments[dept] = {
+          department: dept,
+          totalRefill: 0,
+          approvedRequests: [],
+          fundsDisbursed: [],
+          currentBalance: 0,
+        };
+      }
+
+      const fundsBeforeApproval = departments[dept].currentBalance;
+
+      departments[dept].approvedRequests.push({
+        ...record.toObject(),
+        fundsBeforeApproval,
+      });
+
+      departments[dept].currentBalance -= amount;
+    }
+
+    const result = Object.values(departments).map(dept => ({
+      ...dept,
+      currentBalance: Number(dept.currentBalance.toFixed(2))  // rounded for UI neatness
+    }));
+
 
     return res.status(200).json({
       success: true,
       message: "Ledger Fetched Successfully",
-      data: { approvedRecords, fundsDisbursed },
+      data: result,
     });
   } catch (error) {
-    console.log("error in ledger", error);
+    console.error("Error in ledger", error);
     return res.status(500).json({
       success: false,
       message: "Error fetching ledger",
@@ -325,6 +386,9 @@ const getLedgerForAdmin = async (req, res) => {
     });
   }
 };
+
+
+
 
 // helper function to create notification
 const createNotification = async (userId, message, imprestId = null) => {
