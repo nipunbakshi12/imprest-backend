@@ -206,16 +206,16 @@ const refillAmount = async (req, res) => {
 
     if (existingImprest) {
       existingImprest.refillAmount += refillAmt;
+      existingImprest.refillAmountHistory = refillAmount;
       await existingImprest.save();
     } else {
       existingImprest = new RefillAmount({
         refillAmount: refillAmt,
         department: department,
+        // refillAmountHistory: refillAmount,
       });
       await existingImprest.save();
     }
-
-
 
     // if (existingImprest) {
     //   // If record exists, update the amount
@@ -320,7 +320,9 @@ const getRefillAmount = async (req, res) => {
 const getLedgerForAdmin = async (req, res) => {
   try {
     const fundsDisbursed = await RefillAmount.find().sort({ createdAt: 1 });
-    const approvedRecords = await Imprest.find({ status: "Approv" }).sort({ createdAt: 1 });
+    const approvedRecords = await Imprest.find({ status: "Approv" }).sort({
+      createdAt: 1,
+    });
 
     const departments = {};
 
@@ -366,11 +368,10 @@ const getLedgerForAdmin = async (req, res) => {
       departments[dept].currentBalance -= amount;
     }
 
-    const result = Object.values(departments).map(dept => ({
+    const result = Object.values(departments).map((dept) => ({
       ...dept,
-      currentBalance: Number(dept.currentBalance.toFixed(2))  // rounded for UI neatness
+      currentBalance: Number(dept.currentBalance.toFixed(2)), // rounded for UI neatness
     }));
-
 
     return res.status(200).json({
       success: true,
@@ -386,9 +387,6 @@ const getLedgerForAdmin = async (req, res) => {
     });
   }
 };
-
-
-
 
 // helper function to create notification
 const createNotification = async (userId, message, imprestId = null) => {
