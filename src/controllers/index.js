@@ -335,11 +335,39 @@ const getLedgerForAdmin = async (req, res) => {
           approvedRequests: [],
           fundsDisbursed: [],
           currentBalance: 0,
+          balanceHistory: [], // Initialize balance history array
         };
       }
       departments[dept].totalRefill += Number(fund.refillAmount);
       departments[dept].currentBalance += Number(fund.refillAmount);
       departments[dept].fundsDisbursed.push(fund);
+
+      // Add refill history entries
+      if (fund.refillAmountHistory && fund.refillAmountHistory.length > 0) {
+        for (const refill of fund.refillAmountHistory) {
+          if (refill.amount) {
+            departments[dept].balanceHistory.push({
+              date: refill.date,
+              type: "refill",
+              amount: refill.amount,
+              balance: departments[dept].currentBalance, // Current balance after this refill
+              description: `Refill amount added to ${dept} department`,
+              refillId: fund._id,
+            });
+          }
+        }
+      } else {
+        // Handle legacy records without refill history
+        departments[dept].balanceHistory.push({
+          date: fund.createdAt,
+          type: "refill",
+          amount: fund.refillAmount,
+          balance: departments[dept].currentBalance,
+          description: `Refill amount added to ${dept} department`,
+          refillId: fund._id,
+          managerId: fund.managerId || null,
+        });
+      }
     }
 
     // Process approved requests
@@ -354,10 +382,25 @@ const getLedgerForAdmin = async (req, res) => {
           approvedRequests: [],
           fundsDisbursed: [],
           currentBalance: 0,
+          balanceHistory: [], // Initialize balance history array
         };
       }
 
       const fundsBeforeApproval = departments[dept].currentBalance;
+
+      // Add to history before deducting from balance
+      departments[dept].balanceHistory.push({
+        date: record.updatedAt || record.createdAt,
+        type: "expense",
+        amount: amount,
+        balance: fundsBeforeApproval, // Balance before this expense
+        balanceAfter: fundsBeforeApproval - amount, // Balance after this expense
+        description: `Approved imprest for ${
+          record.requestedBy?.name || "employee"
+        } - ${record.purpose || "No purpose specified"}`,
+        imprestId: record._id,
+        approvedBy: record.approvedBy || null,
+      });
 
       departments[dept].approvedRequests.push({
         ...record.toObject(),
@@ -365,6 +408,26 @@ const getLedgerForAdmin = async (req, res) => {
       });
 
       departments[dept].currentBalance -= amount;
+    }
+
+    // Sort balance history for each department by date (newest first)
+    for (const dept in departments) {
+      if (
+        departments[dept].balanceHistory &&
+        departments[dept].balanceHistory.length > 0
+      ) {
+        departments[dept].balanceHistory.sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        );
+
+        // Add current balance as most recent entry
+        departments[dept].balanceHistory.unshift({
+          date: new Date(),
+          type: "current",
+          balance: departments[dept].currentBalance,
+          description: "Current balance",
+        });
+      }
     }
 
     const result = Object.values(departments).map((dept) => ({
@@ -418,7 +481,7 @@ const updateRequestStatus = async (req, res) => {
   try {
     // const { requestId } = req.params;
     const { status, remarks, requestId } = req.body;
-    console.log("req id", requestId);
+    // console.log("req id", requestId);
     const managerId = req.user._id;
 
     // Check if the request exists
@@ -605,10 +668,10 @@ const getAllNotification = async (req, res) => {
   });
 };
 
-const migrateRefillHistory = async (req,res) => {
+const migrateRefillHistory = async (req, res) => {
   try {
     const allRefillRecords = await RefillAmount.find();
-    console.log("all refill rec",allRefillRecords)
+    console.log("all refill rec", allRefillRecords);
 
     for (const record of allRefillRecords) {
       // Check if refillAmountHistory is a   number
@@ -622,7 +685,7 @@ const migrateRefillHistory = async (req,res) => {
           },
         ];
         await record.save();
-        return historyValue
+        return historyValue;
       }
     }
 
