@@ -203,9 +203,6 @@ const refillAmount = async (req, res) => {
     }).sort({ createdAt: -1 });
 
     const refillAmt = Number(refillAmount); // Ensures numeric addition
-    console.log("refill amt", refillAmt);
-
-    // console.log("amount", existingImprest.refillAmountHistory);
 
     if (existingImprest) {
       existingImprest.refillAmount += refillAmt;
@@ -319,9 +316,12 @@ const getRefillAmount = async (req, res) => {
 const getLedgerForAdmin = async (req, res) => {
   try {
     const fundsDisbursed = await RefillAmount.find().sort({ createdAt: 1 });
-    const approvedRecords = await Imprest.find({ status: "Approv" }).sort({
-      createdAt: 1,
-    });
+    const approvedRecords = await Imprest.find({ status: "Approv" })
+      .populate("employeeId", "email")
+      .populate("managerId", "name")
+      .sort({
+        createdAt: 1,
+      });
 
     const departments = {};
 
@@ -340,16 +340,12 @@ const getLedgerForAdmin = async (req, res) => {
         };
       }
       departments[dept].totalRefill += Number(fund.refillAmount);
-      console.log("refill amount", departments[dept].totalRefill);
       departments[dept].currentBalance += Number(fund.refillAmount);
-      console.log("cyrrent balance", departments[dept].currentBalance);
-      const disburshed = departments[dept].fundsDisbursed.push(fund);
-      console.log("funds disbursed", disburshed);
+      departments[dept].fundsDisbursed.push(fund);
 
       // Add refill history entries
       if (fund.refillAmountHistory && fund.refillAmountHistory.length > 0) {
         for (const refill of fund.refillAmountHistory) {
-          console.log("reill----------------",refill)
           if (refill.amount) {
             departments[dept].balanceHistory.push({
               date: refill.date,
@@ -377,10 +373,10 @@ const getLedgerForAdmin = async (req, res) => {
 
     // Process approved requests
     for (const record of approvedRecords) {
+      console.log("record----------------", record);
+      console.log("approval records-----------------", approvedRecords);
       const dept = record.department;
-      console.log("record",dept)
       const amount = Number(record.amount);
-      console.log("amount",amount)
 
       if (!departments[dept]) {
         departments[dept] = {
@@ -394,7 +390,6 @@ const getLedgerForAdmin = async (req, res) => {
       }
 
       const fundsBeforeApproval = departments[dept].currentBalance;
-      console.log("fund b4 approval",fundsBeforeApproval)
 
       // Add to history before deducting from balance
       departments[dept].balanceHistory.push({
@@ -404,10 +399,10 @@ const getLedgerForAdmin = async (req, res) => {
         balance: fundsBeforeApproval, // Balance before this expense
         balanceAfter: fundsBeforeApproval - amount, // Balance after this expense
         description: `Approved imprest for ${
-          record.requestedBy?.name || "employee"
-        } - ${record.purpose || "No purpose specified"}`,
+          extractNameFromEmail(record.employeeId?.email) || "N/A"
+        } - ${record?.description || "No purpose specified"}`,
         imprestId: record._id,
-        approvedBy: record.approvedBy || null,
+        approvedBy: record?.managerId || null,
       });
 
       departments[dept].approvedRequests.push({
@@ -438,6 +433,7 @@ const getLedgerForAdmin = async (req, res) => {
       }
     }
 
+    console.log("departmentssss", departments);
     const result = Object.values(departments).map((dept) => ({
       ...dept,
       currentBalance: Number(dept.currentBalance.toFixed(2)), // rounded for UI neatness
