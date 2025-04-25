@@ -205,7 +205,7 @@ const refillAmount = async (req, res) => {
     const refillAmt = Number(refillAmount); // Ensures numeric addition
     console.log("refill amt", refillAmt);
 
-    console.log("amount", existingImprest.refillAmountHistory);
+    // console.log("amount", existingImprest.refillAmountHistory);
 
     if (existingImprest) {
       existingImprest.refillAmount += refillAmt;
@@ -328,6 +328,7 @@ const getLedgerForAdmin = async (req, res) => {
     // Process disbursed funds
     for (const fund of fundsDisbursed) {
       const dept = fund.department;
+      console.log("dept", fund);
       if (!departments[dept]) {
         departments[dept] = {
           department: dept,
@@ -339,12 +340,16 @@ const getLedgerForAdmin = async (req, res) => {
         };
       }
       departments[dept].totalRefill += Number(fund.refillAmount);
+      console.log("refill amount", departments[dept].totalRefill);
       departments[dept].currentBalance += Number(fund.refillAmount);
-      departments[dept].fundsDisbursed.push(fund);
+      console.log("cyrrent balance", departments[dept].currentBalance);
+      const disburshed = departments[dept].fundsDisbursed.push(fund);
+      console.log("funds disbursed", disburshed);
 
       // Add refill history entries
       if (fund.refillAmountHistory && fund.refillAmountHistory.length > 0) {
         for (const refill of fund.refillAmountHistory) {
+          console.log("reill----------------",refill)
           if (refill.amount) {
             departments[dept].balanceHistory.push({
               date: refill.date,
@@ -373,7 +378,9 @@ const getLedgerForAdmin = async (req, res) => {
     // Process approved requests
     for (const record of approvedRecords) {
       const dept = record.department;
+      console.log("record",dept)
       const amount = Number(record.amount);
+      console.log("amount",amount)
 
       if (!departments[dept]) {
         departments[dept] = {
@@ -387,6 +394,7 @@ const getLedgerForAdmin = async (req, res) => {
       }
 
       const fundsBeforeApproval = departments[dept].currentBalance;
+      console.log("fund b4 approval",fundsBeforeApproval)
 
       // Add to history before deducting from balance
       departments[dept].balanceHistory.push({
