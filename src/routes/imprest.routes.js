@@ -20,6 +20,8 @@ const {
   getLedgerForAdmin,
   getAllNotification,
   migrateRefillHistory,
+  getVendorList,
+  insertIntoMongoDB,
 } = require("../controllers/index.js");
 const { login } = require("../controllers/auth.controller.js");
 const Imprest = require("../models/imprest.Model.js");
@@ -39,17 +41,23 @@ router.get(
 router.post("/createImprest", authMiddleware, createImprestBasedOnRoles);
 router.get("/getManagerData", authMiddleware, getManagerData);
 router.get("/getAdminData", getAdminData);
-router.post("/refillAmount",authMiddleware, refillAmount);
+router.post("/refillAmount", authMiddleware, refillAmount);
 router.get("/disbursedFunds", disbursedFunds);
 router.get("/getRefillAmount", authMiddleware, getRefillAmount);
 router.post("/updateRefillAmount", authMiddleware, updateRefillAmount);
-router.post("/requestUrgentFundsFromAdmin", authMiddleware, requestUrgentFundsFromAdmin);
+router.post(
+  "/requestUrgentFundsFromAdmin",
+  authMiddleware,
+  requestUrgentFundsFromAdmin
+);
 router.get("/notification", authMiddleware, getNotification);
 router.put("/notification/:id", authMiddleware, updateNotificationStatus);
 router.put("/updateRequestStatus/:id", authMiddleware, updateRequestStatus);
-router.get("/getLedgerForAdmin", authMiddleware,getLedgerForAdmin);
-router.get("/getAllNotification",getAllNotification);
-router.get("/migrateRefillHistory",migrateRefillHistory);
+router.get("/getLedgerForAdmin", authMiddleware, getLedgerForAdmin);
+router.get("/getAllNotification", getAllNotification);
+router.get("/migrateRefillHistory", migrateRefillHistory);
+router.get("/getVendorList", authMiddleware, getVendorList);
+router.get("/insertData", insertIntoMongoDB);
 
 // Get imprest data based on role and department
 router.get("/get-imprest-based-on-role", getImprestBasedOnRole);

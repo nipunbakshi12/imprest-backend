@@ -2,6 +2,8 @@ const Imprest = require("../models/imprest.Model.js");
 const RefillAmount = require("../models/refillAmount.Model.js");
 const User = require("../models/user.Model.js");
 const Notification = require("../models/notification.Model.js");
+const VendorList = require("../models/vendorList.Model.js");
+const { default: mongoose } = require("mongoose");
 
 function extractNameFromEmail(email) {
   try {
@@ -742,6 +744,161 @@ const migrateRefillHistory = async (req, res) => {
   }
 };
 
+const getVendorList = async (req, res) => {
+  try {
+    const userDepartment = req.user.department;
+    const vendors = await VendorList.find({ department: userDepartment });
+    res.json({
+      success: true,
+      data: vendors,
+    });
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+};
+
+const insertIntoMongoDB = async (req, res) => {
+  const vendors = [
+    // IT Department
+    {
+      vendorName: "Alpha Tech Solutions",
+      category: "Software",
+      rating: 4.5,
+      payementTerms: "Full Advance",
+      department: "IT",
+    },
+    {
+      vendorName: "SecureNet Pvt Ltd",
+      category: "Networking",
+      rating: 4.2,
+      payementTerms: "Credit",
+      department: "IT",
+    },
+    {
+      vendorName: "NextGen IT Services",
+      category: "Cloud Hosting",
+      rating: 4.6,
+      payementTerms: "Installments",
+      department: "IT",
+    },
+    {
+      vendorName: "Digital Edge Systems",
+      category: "IT Hardware",
+      rating: 4.3,
+      payementTerms: "Partial Payment",
+      department: "IT",
+    },
+
+    // HR Department
+    {
+      vendorName: "HR Solutions Inc.",
+      category: "Recruitment",
+      rating: 3.8,
+      payementTerms: "Installments",
+      department: "HR",
+    },
+    {
+      vendorName: "EduServe Trainers",
+      category: "Training",
+      rating: 4.1,
+      payementTerms: "Full Advance",
+      department: "HR",
+    },
+    {
+      vendorName: "PeoplePulse Agency",
+      category: "Background Checks",
+      rating: 4.0,
+      payementTerms: "Partial Payment",
+      department: "HR",
+    },
+    {
+      vendorName: "Zenith HR Tools",
+      category: "HR Software",
+      rating: 4.4,
+      payementTerms: "Credit",
+      department: "HR",
+    },
+
+    // Marketing Department
+    {
+      vendorName: "Event Masters",
+      category: "Event Management",
+      rating: 4.3,
+      payementTerms: "Partial Payment",
+      department: "Marketing",
+    },
+    {
+      vendorName: "DesignCraft Studio",
+      category: "Graphics",
+      rating: 4.7,
+      payementTerms: "Credit",
+      department: "Marketing",
+    },
+    {
+      vendorName: "Buzz Media",
+      category: "Social Media",
+      rating: 4.5,
+      payementTerms: "Installments",
+      department: "Marketing",
+    },
+    {
+      vendorName: "AdVision Creatives",
+      category: "Advertising",
+      rating: 4.6,
+      payementTerms: "Full Advance",
+      department: "Marketing",
+    },
+
+    // Administration Department
+    {
+      vendorName: "Office Supplies Co.",
+      category: "Stationery",
+      rating: 4.0,
+      payementTerms: "Partial Payment",
+      department: "Finance",
+    },
+    {
+      vendorName: "CleanPro Services",
+      category: "Housekeeping",
+      rating: 4.2,
+      payementTerms: "Installments",
+      department: "Finance",
+    },
+    {
+      vendorName: "SecureTech Pvt Ltd",
+      category: "Security",
+      rating: 4.1,
+      payementTerms: "Credit",
+      department: "Finance",
+    },
+    {
+      vendorName: "FurniDesk Interiors",
+      category: "Office Furniture",
+      rating: 4.3,
+      payementTerms: "Full Advance",
+      department: "Finance",
+    },
+  ];
+
+  try {
+    const insertedData = VendorList.insertMany(vendors)
+      .then(() => {
+        console.log("Vendor data inserted");
+        mongoose.disconnect();
+      })
+      .catch((err) => console.log(err));
+    console.log("inserted data", insertedData);
+
+    res.json({
+      success: true,
+      message: "no data",
+      data: insertedData,
+    });
+  } catch (error) {
+    console.log(error, "error");
+  }
+};
+
 // Run this function to migrate your data
 // migrateRefillHistory();
 
@@ -763,4 +920,6 @@ module.exports = {
   getLedgerForAdmin,
   getAllNotification,
   migrateRefillHistory,
+  getVendorList,
+  insertIntoMongoDB,
 };
